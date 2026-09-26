@@ -1,0 +1,57 @@
+pipeline {
+    agent any
+
+    tools {
+        // Adjust these names to match the tool names configured in
+        // Manage Jenkins -> Tools on your Jenkins instance.
+        jdk 'jdk17'
+        maven 'maven3'
+    }
+
+    stages {
+        stage('Build') {
+            steps {
+                sh 'mvn -B clean compile'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh 'mvn -B test'
+            }
+            post {
+                always {
+                    junit 'target/surefire-reports/*.xml'
+                }
+            }
+        }
+
+        stage('Package') {
+            steps {
+                sh 'mvn -B package -DskipTests'
+                archiveArtifacts artifacts: 'target/webapp-*.jar', fingerprint: true
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                // Example: copy the jar to a server and (re)start it.
+                // Replace with your real deploy step (scp, k8s, docker, etc.)
+                sh '''
+                    echo "Deploying target/webapp-*.jar ..."
+                    # scp target/webapp-*.jar user@server:/opt/webapp/
+                    # ssh user@server "systemctl restart webapp"
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Pipeline completed successfully.'
+        }
+        failure {
+            echo 'Pipeline failed - check the logs above.'
+        }
+    }
+}
